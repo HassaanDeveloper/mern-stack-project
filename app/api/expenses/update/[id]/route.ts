@@ -4,7 +4,12 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbconnect from '@/lib/dbconnect';
 import Expense from '@/model/Expense';
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params; 
+
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -16,7 +21,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   try {
     const updatedExpense = await Expense.findOneAndUpdate(
-      { _id: params.id, userId: session.user._id },
+      { _id: id, userId: session.user._id },
       { title, amount, category, date },
       { new: true }
     );
@@ -25,8 +30,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ message: "Expense not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Expense updated", expense: updatedExpense }, { status: 200 });
+    return NextResponse.json(
+      { message: "Expense updated", expense: updatedExpense },
+      { status: 200 }
+    );
   } catch (error) {
+    console.error("Error updating expense:", error);
     return NextResponse.json({ message: "Update failed", error }, { status: 500 });
   }
 }
